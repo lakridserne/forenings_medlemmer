@@ -2,17 +2,16 @@ from django.conf.urls import patterns,  url, include
 from members.views import FamilyDetails, PersonCreate, PersonUpdate \
     , WaitingListSetSubscription, DeclineInvitation, EntryPage, loginEmailSent \
     , ConfirmFamily, QuickpayCallback, ActivitySignup , waitinglistView \
-    , paymentGatewayErrorView, ActivityViewSet \
-    , activity_list, DepartmentViewSet
+    , paymentGatewayErrorView, activity_list, activity_detail, DepartmentViewSet
 from rest_framework import routers
 
 router = routers.DefaultRouter()
 router.register(r'department', DepartmentViewSet)
-router.register(r'activity', ActivityViewSet)
 
 urlpatterns = [
     url(r'^api/', include(router.urls)),
     url(r'^api/department/(?P<dept>[0-9]+)/activity$',activity_list),
+    url(r'^api/department/(?P<dept>[0-9]+)/activity/(?P<pk>[0-9]+)$',activity_detail),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^$', EntryPage, name='entry_page'),
     url(r'login_email_sent/$', loginEmailSent, name='login_email_sent'),

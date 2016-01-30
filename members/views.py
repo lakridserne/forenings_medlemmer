@@ -23,9 +23,29 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all().order_by('name')
     serializer_class = DepartmentSerializer
 
-class ActivityViewSet(viewsets.ModelViewSet):
-    queryset = Activity.objects.all().order_by('-start_date')
-    serializer_class = ActivitySerializer
+@api_view(['GET','PUT','DELETE'])
+def activity_detail(request,dept,pk):
+    try:
+        department = Department.objects.get(pk=dept)
+        activity = Activity.objects.get(pk=pk)
+    except Department.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    except Activity.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    if activity.department != department:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    if request.method == 'GET':
+        serializer = ActivitySerializer(activity)
+        return Response(serializer.data)
+    elif request.method == 'PUT':
+        serializer = ActivitySerializer(activity,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+    elif request.method == 'DELETE':
+        activity.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['GET','POST'])
 def activity_list(request,dept):
@@ -40,7 +60,7 @@ def activity_list(request,dept):
     elif request.method == 'POST':
         serializer = ActivitySerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(department=department)
             return Response(serializer.data, status = status.HTTP_201_CREATED)
         return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
