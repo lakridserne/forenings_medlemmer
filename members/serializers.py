@@ -12,7 +12,7 @@ class DepartmentSerializer(serializers.HyperlinkedModelSerializer):
 class ActivitySerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Activity
-        fields = ('id','department','name','open_hours','responsible_name'
+        fields = ('id','name','open_hours','responsible_name'
             ,'responsible_contact','placename','zipcode','city','streetname'
             ,'housenumber','floor','door','dawa_id','description','instructions'
             ,'start_date','end_date','signup_closing','open_invite'

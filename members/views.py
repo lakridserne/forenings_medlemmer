@@ -3,17 +3,21 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.core.urlresolvers import reverse_lazy, reverse
 from django.template import RequestContext
 from django.http import Http404, HttpResponseRedirect, HttpResponse, HttpResponseForbidden
-from members.models import Person, Family, ActivityInvite, ActivityParticipant, Member, Activity, EmailTemplate, Department, WaitingList, QuickpayTransaction, Payment
-from members.forms import PersonForm, getLoginForm, signupForm, ActivitySignupForm, ActivivtyInviteDeclineForm
 from django.utils import timezone
 from django.conf import settings
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import viewsets
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from members.models import Person, Family, ActivityInvite, ActivityParticipant \
+    , Member, Activity, EmailTemplate, Department, WaitingList, QuickpayTransaction, Payment
+from members.forms import PersonForm, getLoginForm, signupForm, ActivitySignupForm, ActivivtyInviteDeclineForm
+from members.serializers import DepartmentSerializer, ActivitySerializer
 import datetime
 import hashlib, hmac
 import json
-from rest_framework import viewsets
-from members.serializers import DepartmentSerializer, ActivitySerializer
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all().order_by('name')
@@ -22,6 +26,23 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 class ActivityViewSet(viewsets.ModelViewSet):
     queryset = Activity.objects.all().order_by('-start_date')
     serializer_class = ActivitySerializer
+
+@api_view(['GET','POST'])
+def activity_list(request,dept):
+    try:
+        department = Department.objects.get(pk=dept)
+    except Department.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    if request.method == 'GET':
+        activities = Activity.objects.filter(department=department)
+        serializer = ActivitySerializer(activities,many=True)
+        return Response(serializer.data)
+    elif request.method == 'POST':
+        serializer = ActivitySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status = status.HTTP_201_CREATED)
+        return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
 def FamilyDetails(request,unique):
     family = get_object_or_404(Family, unique=unique)
