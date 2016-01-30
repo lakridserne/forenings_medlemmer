@@ -60,7 +60,13 @@ INSTALLED_APPS = (
     'members',
     'crispy_forms',
     'django_cron',
+    'rest_framework',
 )
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAdminUser',),
+    'PAGE_SIZE': 10
+}
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 

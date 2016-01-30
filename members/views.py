@@ -12,6 +12,12 @@ from django.views.decorators.csrf import csrf_exempt
 import datetime
 import hashlib, hmac
 import json
+from rest_framework import viewsets
+from members.serializers import DepartmentSerializer
+
+class DepartmentViewSet(viewsets.ModelViewSet):
+    queryset = Department.objects.all().order_by('name')
+    serializer_class = DepartmentSerializer
 
 def FamilyDetails(request,unique):
     family = get_object_or_404(Family, unique=unique)
