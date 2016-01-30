@@ -13,11 +13,15 @@ import datetime
 import hashlib, hmac
 import json
 from rest_framework import viewsets
-from members.serializers import DepartmentSerializer
+from members.serializers import DepartmentSerializer, ActivitySerializer
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all().order_by('name')
     serializer_class = DepartmentSerializer
+
+class ActivityViewSet(viewsets.ModelViewSet):
+    queryset = Activity.objects.all().order_by('-start_date')
+    serializer_class = ActivitySerializer
 
 def FamilyDetails(request,unique):
     family = get_object_or_404(Family, unique=unique)
