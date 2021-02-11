@@ -1,0 +1,13 @@
+{% extends 'members/base.html' %}
+
+{% block content %}
+      <h1>&nbsp;</h1>
+      <div class="jumbotron">
+        <form method="post" action="{%  %}">
+          <h1>Tjek fødselsdatoen</h1>
+          <p>Barnets fødselsdato er angivet til <span class="h5"><mark><strong><u>{{ birthday }}</u></strong></mark></span>. Tryk accepter for at gå videre, eller opdater alder.</p>
+          <a class="btn btn-primary" href="{% url 'person_login' %}">← Gå tilbage</a>
+          <a class="btn btn-success" href="{% url 'person_login' %}">Accepter →</a>
+        </form>
+      </div>
+{% endblock %}

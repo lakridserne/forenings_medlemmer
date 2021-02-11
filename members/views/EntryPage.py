@@ -34,6 +34,24 @@ def EntryPage(request):
                 except Exception:
                     # all is fine - we did not expect any
                     pass
+
+                # Get birthday and check if within the limits
+                today = timezone.now().date()
+                age = (
+                    today.year
+                    - signup.cleaned_data["child_birthday"].year
+                    - (
+                        (today.month, today.day)
+                        < (
+                            signup.cleaned_data["child_birthday"].month,
+                            signup.cleaned_data["child_birthday"].day,
+                        )
+                    )
+                )
+                if age > 17 or age < 5:
+                    context = {"birthday": signup.cleaned_data["child_birthday"]}
+                    return render(request, "members/validate_birthday.html", context)
+
                 # TODO: rewrite this! <<<<
                 # create new family.
                 family = Family.objects.create(
