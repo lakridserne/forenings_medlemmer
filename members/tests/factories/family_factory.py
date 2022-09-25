@@ -1,6 +1,7 @@
 import factory
-from factory import Faker
+from factory import Faker, Maybe
 from factory.django import DjangoModelFactory
+from factory.fuzzy import FuzzyChoice
 from members.models import Family
 from members.tests.factories.factory_helpers import TIMEZONE
 
@@ -18,4 +19,6 @@ class FamilyFactory(DjangoModelFactory):
     updated_dtm = Faker("date_time", tzinfo=TIMEZONE)
     confirmed_dtm = Faker("date_time", tzinfo=TIMEZONE)
     last_visit_dtm = Faker("date_time", tzinfo=TIMEZONE)
-    deleted_dtm = Faker("date_time", tzinfo=TIMEZONE)
+    anonymized_at = Maybe(
+        FuzzyChoice([True, False]), Faker("date_time", tzinfo=TIMEZONE), None
+    )
