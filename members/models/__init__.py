@@ -7,14 +7,13 @@ import members.models.activity
 import members.models.activitytype
 import members.models.activityinvite
 import members.models.activityparticipant
-
-
 import members.models.department
 import members.models.emailitem
 import members.models.emailtemplate
 import members.models.equipment
 import members.models.equipmentloan
 import members.models.family
+import members.models.mainzipcode
 import members.models.member
 import members.models.notification
 import members.models.payment
@@ -42,6 +41,7 @@ from .emailtemplate import EmailTemplate
 from .equipment import Equipment
 from .equipmentloan import EquipmentLoan
 from .family import Family
+from .mainzipcode import MainZipcode
 from .member import Member
 from .notification import Notification
 from .payment import Payment
@@ -71,6 +71,7 @@ __all__ = [
     EquipmentLoan,
     Family,
     gatherDayliStatistics,
+    MainZipcode,
     Member,
     Notification,
     Payment,
