@@ -14,7 +14,7 @@ class Person(models.Model):
     class Meta:
         verbose_name = "Person"
         verbose_name_plural = "Personer"
-        ordering = ["added"]
+        ordering = ["added_at"]
         permissions = (
             (
                 "view_full_address",
@@ -64,7 +64,7 @@ class Person(models.Model):
     latitude = models.DecimalField(
         "Breddegrad", blank=True, null=True, max_digits=9, decimal_places=6
     )
-    updated_dtm = models.DateTimeField("Opdateret", auto_now=True)
+    updated_at = models.DateTimeField("Opdateret", auto_now=True)
     placename = models.CharField("Stednavn", max_length=200, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField("Telefon", max_length=50, blank=True)
@@ -75,8 +75,7 @@ class Person(models.Model):
     has_certificate = models.DateField("Børneattest", blank=True, null=True)
     family = models.ForeignKey("Family", on_delete=models.CASCADE)
     notes = models.TextField("Noter", blank=True, null=False, default="")
-    added = models.DateTimeField("Tilføjet", default=timezone.now, blank=False)
-    deleted_dtm = models.DateTimeField("Slettet", null=True, blank=True)
+    added_at = models.DateTimeField("Tilføjet", default=timezone.now, blank=False)
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_DEFAULT,

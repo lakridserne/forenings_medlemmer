@@ -33,7 +33,7 @@ class WaitingList(models.Model):
     def save(self, *args, **kwargs):
         """On creation set on_waiting_list"""
         if not self.id:
-            self.on_waiting_list_since = self.person.added
+            self.on_waiting_list_since = self.person.added_at
         return super(WaitingList, self).save(*args, **kwargs)
 
     @staticmethod

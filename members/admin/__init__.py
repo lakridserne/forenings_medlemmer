@@ -81,21 +81,21 @@ class PersonInline(admin.TabularInline):
     admin_link.short_description = "Navn"
 
     model = Person
-    fields = ("admin_link", "membertype", "zipcode", "added", "notes")
+    fields = ("admin_link", "membertype", "zipcode", "added_at", "notes")
     readonly_fields = fields
     extra = 0
 
 
 class PaymentInline(admin.TabularInline):
     model = Payment
-    fields = ("added", "payment_type", "confirmed_dtm", "rejected_dtm", "amount_ore")
+    fields = ("added_at", "payment_type", "confirmed_dtm", "rejected_dtm", "amount_ore")
     readonly_fields = ("family",)
     extra = 0
 
 
 class VolunteerInline(admin.TabularInline):
     model = Volunteer
-    fields = ("department", "added", "confirmed", "removed")
+    fields = ("department", "added_at", "confirmed", "removed")
     extra = 0
 
 
@@ -160,7 +160,7 @@ class FamilyAdmin(admin.ModelAdmin):
     # actions = ['resend_link_email']
 
     fields = ("email", "dont_send_mails", "confirmed_dtm")
-    readonly_fields = ("confirmed_dtm",)
+    readonly_fields = ("confirmed_at",)
     list_per_page = 20
 
     def create_new_uuid(self, request, queryset):

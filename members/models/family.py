@@ -20,9 +20,9 @@ class Family(models.Model):
     unique = models.UUIDField(default=uuid.uuid4, unique=True)
     email = models.EmailField(unique=True)
     dont_send_mails = models.BooleanField("Vil ikke kontaktes", default=False)
-    updated_dtm = models.DateTimeField("Opdateret", auto_now=True)
-    confirmed_dtm = models.DateTimeField("Bekræftet", null=True, blank=True)
-    last_visit_dtm = models.DateTimeField("Sidst besøgt", null=True, blank=True)
+    updated_at = models.DateTimeField("Opdateret", auto_now=True)
+    confirmed_at = models.DateTimeField("Bekræftet", null=True, blank=True)
+    last_visit_at = models.DateTimeField("Sidst besøgt", null=True, blank=True)
     anonymized_at = models.DateTimeField("Anonymiseret", null=True, blank=True)
 
     def get_abosolute_url(self):

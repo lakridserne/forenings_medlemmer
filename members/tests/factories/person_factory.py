@@ -1,6 +1,7 @@
 import factory
-from factory import Faker, SubFactory, SelfAttribute
+from factory import Faker, Maybe, SubFactory, SelfAttribute
 from factory.django import DjangoModelFactory
+from factory.fuzzy import FuzzyChoice
 from members.tests.factories.factory_helpers import TIMEZONE, LOCALE
 from members.tests.factories.providers import DanishProvider
 from factory.fuzzy import FuzzyChoice
@@ -34,7 +35,7 @@ class PersonFactory(DjangoModelFactory):
     municipality = Faker("municipality")
     longitude = Faker("longitude")
     latitude = Faker("latitude")
-    updated_dtm = Faker("date_time", tzinfo=TIMEZONE)
+    updated_at = Faker("date_time", tzinfo=TIMEZONE)
     email = factory.Sequence(
         lambda n: "person{0}@example.com".format(n)
     )  # Faker("email")
@@ -44,8 +45,10 @@ class PersonFactory(DjangoModelFactory):
     # has_certificate = Faker("date")
     family = SubFactory(FamilyFactory, email=email)
     notes = Faker("text")
-    # added = Faker("date_time", tzinfo=TIMEZONE)
-    # deleted_dtm = Faker("date_time", tzinfo=TIMEZONE)
+    added_at = Faker("date_time", tzinfo=TIMEZONE)
+    anonymized_at = Maybe(
+        FuzzyChoice([True, False]), Faker("date_time", tzinfo=TIMEZONE), None
+    )
     user = SubFactory(
         UserFactory, username=SelfAttribute("..email"), email=SelfAttribute("..email")
     )

@@ -16,9 +16,9 @@ class FamilyFactory(DjangoModelFactory):
         lambda n: "family{0}@example.com".format(n)
     )  # Faker("email")
     # dont_send_mails = Faker("boolean")
-    updated_dtm = Faker("date_time", tzinfo=TIMEZONE)
-    confirmed_dtm = Faker("date_time", tzinfo=TIMEZONE)
-    last_visit_dtm = Faker("date_time", tzinfo=TIMEZONE)
+    updated_at = Faker("date_time", tzinfo=TIMEZONE)
+    confirmed_at = Faker("date_time", tzinfo=TIMEZONE)
+    last_visit_at = Faker("date_time", tzinfo=TIMEZONE)
     anonymized_at = Maybe(
         FuzzyChoice([True, False]), Faker("date_time", tzinfo=TIMEZONE), None
     )
