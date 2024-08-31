@@ -150,6 +150,7 @@ class PollQuickpayPaymentsCronJob(CronJobBase):
 
 
 # Send email to family if payment initiated but not accepted after 3 days
+# TODO Reactive. ACT_CONFIRM is now both splitted up in ACT_CONFIRM and ACT_CONFIRM_ADULT
 """
 class ReminderEmailPaymentCronJob(CronJobBase):
     RUN_AT_TIMES = ["5:00"]
