@@ -94,6 +94,15 @@ INSTALLED_APPS = (
     "graphene_django",
     "django_extensions",
     "rangefilter",
+    "django_otp",
+    "django_otp.plugins.otp_static",
+    "django_otp.plugins.otp_totp",
+    "django_otp.plugins.otp_email",
+    "otp_yubikey",
+    "two_factor",
+    "two_factor.plugins.phonenumber",
+    "two_factor.plugins.email",
+    "two_factor.plugins.yubikey",
 )
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
@@ -114,6 +123,8 @@ MIDDLEWARE = (
     "django.contrib.messages.middleware.MessageMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "members.middleware.consent_middleware.ConsentMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
 )
 
 CORS_ORIGIN_WHITELIST = [host.replace(" ", "") for host in env.list("CORS_LIST")]
@@ -237,8 +248,8 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
-LOGIN_URL = "/account/login/"
-LOGIN_REDIRECT_URL = "/"
+LOGIN_URL = "two_factor:login"
+LOGIN_REDIRECT_URL = "two_factor:profile"
 
 MINIMUM_MEMBERSHIP_PRICE_IN_DKK = 75
 MINIMUM_SEASON_PRICE_IN_DKK = 150
