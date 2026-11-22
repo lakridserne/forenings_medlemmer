@@ -9,14 +9,14 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 """
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import logging
 import os
 import sys
-import logging
-from environs import Env
+
 import dj_database_url
 import sentry_sdk
+from environs import Env
 from sentry_sdk.integrations.django import DjangoIntegration
-
 
 env = Env()
 env.read_env()
@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 TESTING = os.path.basename(sys.argv[1]) == "test"
 USE_DAWA_ON_SAVE = not TESTING
 
+DATAFORSYNINGEN_BASE_URL = "https://api.dataforsyningen.dk"
+
+DATAFORDELER_API_KEY = env.str("DATAFORDELER_API_KEY", default="")
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 TEMPLATES = [
@@ -47,13 +51,14 @@ TEMPLATES = [
                 # Insert your TEMPLATE_CONTEXT_PROCESSORS here or use this
                 # list if you haven't customized them:
                 "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.debug",
-                "django.template.context_processors.request",
                 "django.template.context_processors.i18n",
                 "django.template.context_processors.media",
+                "django.template.context_processors.request",
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
-                "django.contrib.messages.context_processors.messages",
+                "members.context_processors.slack_menu_context",
             ]
         },
     }
@@ -88,6 +93,7 @@ INSTALLED_APPS = (
     "django.contrib.staticfiles",
     "corsheaders",
     "members",
+    "cookie_consent",
     "crispy_forms",
     "crispy_bootstrap5",
     "django.contrib.admin",
@@ -125,6 +131,7 @@ MIDDLEWARE = (
     "members.middleware.consent_middleware.ConsentMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
+    "members.middleware.last_login_middleware.LastLoginMiddleware",
 )
 
 CORS_ORIGIN_WHITELIST = [host.replace(" ", "") for host in env.list("CORS_LIST")]
@@ -185,7 +192,7 @@ DATE_INPUT_FORMATS = ("%d/%m/%Y", "%Y-%m-%d")
 # How many days is Family data considered valid.
 # After this period an E-mail asking for information
 # Checkup is sent to the Family.
-REQUEST_FAMILY_VALIDATION_PERIOD = 180
+REQUEST_FAMILY_VALIDATION_PERIOD = 365
 
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
@@ -199,14 +206,16 @@ MANAGERS = ADMINS
 SITE_CONTACT = "Coding Pirates <kontakt@codingpirates.dk>"
 EMAIL_SUBJECT_PREFIX = "[Coding Pirates Medlemsdatabase] "
 email = env.dj_email_url("EMAIL_URL")
-EMAIL_BACKEND = email["EMAIL_BACKEND"]
-EMAIL_HOST = email["EMAIL_HOST"]
-EMAIL_HOST_USER = email["EMAIL_HOST_USER"]
-EMAIL_HOST_PASSWORD = email["EMAIL_HOST_PASSWORD"]
+EMAIL_BACKEND = email.get(
+    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_HOST = email.get("EMAIL_HOST", "")
+EMAIL_HOST_USER = email.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = email.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_FILE_PATH = BASE_DIR
 SERVER_EMAIL = "hostmaster@members.codingpirates.dk"
-EMAIL_PORT = email["EMAIL_PORT"]
-EMAIL_USE_SSL = email["EMAIL_USE_SSL"]
+EMAIL_PORT = email.get("EMAIL_PORT", 25)
+EMAIL_USE_SSL = email.get("EMAIL_USE_SSL", False)
 DEFAULT_FROM_EMAIL = "kontakt@codingpirates.dk"
 EMAIL_TIMEOUT = 30
 
@@ -256,3 +265,4 @@ MINIMUM_SEASON_PRICE_IN_DKK = 150
 MINIMUM_PRICE_IN_DKK = 0
 
 LIST_PER_PAGE = 50
+CONSENT_REMINDER_LOOKAHEAD_DAYS = 30

@@ -1,5 +1,5 @@
 import random
-from datetime import timedelta
+from datetime import timedelta, datetime, time
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
@@ -8,9 +8,9 @@ from django.core.validators import RegexValidator
 from members.models.municipality import Municipality
 from members.models.consent import Consent
 from django.core.exceptions import PermissionDenied, ValidationError
+from members.models.payment import Payment
+from members.models.union import Union
 from members.utils.address import format_address
-from urllib.parse import quote_plus
-import requests
 import logging
 
 logger = logging.getLogger(__name__)
@@ -91,7 +91,7 @@ class Person(models.Model):
         on_delete=models.RESTRICT,
         blank=True,
         null=True,  # allow blank/null values since we don't have addresses for all persons
-        default="",
+        default=None,
     )
     longitude = models.DecimalField(
         "Længdegrad", blank=True, null=True, max_digits=9, decimal_places=6
@@ -135,6 +135,11 @@ class Person(models.Model):
         verbose_name="Samtykke givet af",
     )
     consent_at = models.DateTimeField("Samtykke dato", null=True, blank=True)
+    consent_reminder_sent_at = models.DateTimeField(
+        "Samtykke-påmindelse sendt",
+        null=True,
+        blank=True,
+    )
     REGION_CHOICES = (
         ("Region Syddanmark", "Syddanmark"),
         ("Region Hovedstaden", "Hovedstaden"),
@@ -156,6 +161,9 @@ class Person(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
+        if self.municipality_id == "":
+            self.municipality = None
+
         if not settings.TESTING:
             updated = self.update_dawa_data(force=True, save=False)
             if updated is not None:
@@ -196,22 +204,45 @@ class Person(models.Model):
         else:
             return "N/A"
 
-    def is_anonymization_candidate(self):
+    def is_anonymization_candidate(self, relaxed=False, as_of_date=None):
         """
         Determine if person is a candidate for anonymization.
-        Returns False if created_date, latest_activity or last_login is less than 5 years ago.
+        We cannot anonymize if there is a payment in the last 5 full fiscal years.
+
+        Args:
+            relaxed: If True, only checks for financial transactions. Allows anonymization
+                    even if person has been logged in or created recently.
+            as_of_date: Evaluate rules as of this calendar date (default: same boundaries
+                    as ``timezone.now()``). Use e.g. ``timezone.now().date() + timedelta(days=30)``
+                    for consent reminders (~one month before typical candidacy).
+
+        Returns: Tuple (is_candidate, reason):
+        - is_candidate: False if e.g. latest_activity
+        - reason: Description of why the person is not a candidate
         """
-        five_years_ago = timezone.now() - timedelta(days=5 * 365)
 
-        # Check if person was created less than 5 years ago
-        if self.added_at > five_years_ago:
-            return False
+        # we operate with two date boundaries:
+        # - 2 years for login or participation in activities
+        if as_of_date is None:
+            now = timezone.now()
+            two_years_ago = now - timedelta(days=2 * 365)
+            today = now.date()
+        else:
+            today = as_of_date
+            ref_start = timezone.make_aware(datetime.combine(as_of_date, time.min))
+            two_years_ago = ref_start - timedelta(days=2 * 365)
 
-        # Check if user has logged in within the last 5 years
-        if self.user and self.user.last_login and self.user.last_login > five_years_ago:
-            return False
+        # consent within last 2 years?
+        if self.consent_at and self.consent_at.date() >= two_years_ago.date():
+            return False, "Har givet samtykke indenfor seneste 2 år."
 
-        # Check if person has participated in activities within the last 5 years
+        # - January 1st of the year before 5 years ago, i.e. at least 5 full years,
+        # for financial transactions
+        #
+        # current date 2025-09-27 => 2020-01-01
+        five_full_fiscal_years = timezone.make_aware(datetime(today.year - 5, 1, 1))
+
+        # If person has participated in activities within the last 2 years, then cannot be anonymized
         # Import here to avoid circular imports
         from .activityparticipant import ActivityParticipant
 
@@ -223,10 +254,37 @@ class Person(models.Model):
         )
 
         if latest_participation and latest_participation.activity.end_date:
-            if latest_participation.activity.end_date > five_years_ago.date():
-                return False
+            if latest_participation.activity.end_date >= two_years_ago.date():
+                return False, "Har deltaget i aktiviteter seneste 2 år."
 
-        return True
+        # if in relaxed mode, we allow aononymization of persons created or logged in
+        if not relaxed:
+            if self.added_at >= two_years_ago:
+                return False, "Oprettet indenfor seneste 2 år."
+
+            if (
+                self.user
+                and self.user.last_login
+                and self.user.last_login >= two_years_ago
+            ):
+                return False, "Har logget ind seneste 2 år."
+
+        # We verify both person and family, i.e. a parent cannot be anonymized if there are payments for any of the children in family
+        if (
+            Payment.objects.filter(
+                person=self, added_at__gte=five_full_fiscal_years
+            ).exists()
+            or Payment.objects.filter(
+                family=self.family, added_at__gte=five_full_fiscal_years
+            ).exists()
+        ):
+            return (
+                False,
+                "Der eksisterer betaling indenfor seneste 5 fulde regnskabsår.",
+            )
+
+        # otherwise, the person can be anonymized
+        return True, ""
 
     def update_dawa_data(self, force=False, save=True):
         if self.address_invalid and not force:
@@ -239,47 +297,30 @@ class Person(models.Model):
             or force
         ):
             try:
-                url = f"https://api.dataforsyningen.dk/adresser?q={quote_plus(self.addressWithZip())}"
-                response = requests.get(url)
-                if response.status_code != 200:
+                from members.utils.address_lookup import (
+                    search_address,
+                    get_address_by_id,
+                    parse_address_data,
+                    apply_address_data,
+                )
+
+                id_lokalid = self.dawa_id or search_address(self.addressWithZip())
+                if not id_lokalid:
                     self.address_invalid = True
                     if save:
                         self.save()
                     return self
 
-                data = response.json()
+                data = get_address_by_id(id_lokalid)
                 if not data:
                     self.address_invalid = True
                     if save:
                         self.save()
                     return self
 
-                # DAWA returns result with address and "adgangsadresse". Address has fields "etage" and "dør",
-                # whereas "adgangsadresse" has all the shared address fields (e.g. for an apartment building)
-                address = data[0]
-                access_address = address["adgangsadresse"]
-
-                if address["etage"] is None:
-                    address["etage"] = ""
-                if address["dør"] is None:
-                    address["dør"] = ""
-                if access_address["supplerendebynavn"] is None:
-                    access_address["supplerendebynavn"] = ""
-
-                self.zipcode = access_address["postnummer"]["nr"]
-                self.city = access_address["postnummer"]["navn"]
-                self.streetname = access_address["vejstykke"]["navn"]
-                self.housenumber = access_address["husnr"]
-                self.floor = address["etage"]
-                self.door = address["dør"]
-                self.placename = access_address["supplerendebynavn"]
-                self.latitude = access_address["vejpunkt"]["koordinater"][1]
-                self.longitude = access_address["vejpunkt"]["koordinater"][0]
-                self.municipality = Municipality.objects.get(
-                    dawa_id=access_address["kommune"]["kode"]
-                )
-                self.region = access_address["region"]["navn"]
-                self.dawa_id = address["id"]
+                parsed = parse_address_data(data)
+                apply_address_data(self, parsed)
+                self.municipality = parsed["municipality_obj"]
                 if save:
                     self.save()
                 return self
@@ -291,7 +332,15 @@ class Person(models.Model):
 
     # TODO: Move to dawa_data in utils
 
-    def anonymize(self, request):
+    def anonymize(self, request, relaxed=False):
+        """
+        Anonymize a person.
+
+        Args:
+            request: Request object with user that has anonymize_persons permission
+            relaxed: If True, uses relaxed validation (only checks financial transactions).
+                    Allows anonymization even if person has been logged in or created recently.
+        """
         if not request.user.has_perm("members.anonymize_persons"):
             raise PermissionDenied(
                 "Du har ikke tilladelse til at anonymisere personer."
@@ -300,7 +349,13 @@ class Person(models.Model):
         if self.anonymized:
             raise ValidationError("Personen er allerede anonymiseret.")
 
-        orig_email = self.email
+        is_anonymization_candidate, reason = self.is_anonymization_candidate(
+            relaxed=relaxed
+        )
+        if not is_anonymization_candidate:
+            raise ValidationError(
+                f"Personen {self.name} kan ikke anonymiseres: {reason}"
+            )
 
         self.name = "Anonymiseret"
         self.zipcode = ""
@@ -334,6 +389,16 @@ class Person(models.Model):
         for waiting_list in self.waitinglist_set.all():
             waiting_list.delete()
 
+        # Remove department/union relationships
+        self.department_set.clear()
+        self.union_set.clear()
+
+        # Remove union roles
+        Union.objects.filter(chairman=self).update(chairman=None)
+        Union.objects.filter(second_chair=self).update(second_chair=None)
+        Union.objects.filter(cashier=self).update(cashier=None)
+        Union.objects.filter(secretary=self).update(secretary=None)
+
         self.family.anonymize_if_all_persons_anonymized(request)
 
         # anonymize sent emails
@@ -351,20 +416,21 @@ class Person(models.Model):
             activity_item.note = ""
             activity_item.save()
 
-        # anonymize Django user if exists, there might be multiple users with the same email address
-        users = User.objects.filter(email__exact=orig_email)
-        if users.exists():
-            for user in users:
+        # anonymize Django user if exists
+        if self.user is not None:
+            try:
+                user = User.objects.get(pk=self.user.pk)
                 user.username = f"anonymized-{user.id}"
                 user.first_name = "Anonymiseret"
                 user.last_name = ""
-                user.email = f"{user.username}@localhost"
+                user.email = f"anonymized-{user.id}@localhost"
                 user.is_superuser = False
                 user.is_staff = False
                 user.is_active = False
+                user.groups.clear()
                 user.save()
-        else:
-            pass  # no user accounts found for this person
+            except User.DoesNotExist:
+                pass  # no user account found for this person, nothing to update then
 
     firstname.admin_order_field = "name"
     firstname.short_description = "Fornavn"

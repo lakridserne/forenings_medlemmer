@@ -1,0 +1,15 @@
+{% extends 'members/base.html' %}
+
+{% if form.errors %}
+<div class="row">
+    <blockquote class="error">Dit brugernavn eller adgangskode var forkert. Prøv igen.</blockquote>
+</div>
+{% endif %}
+<input type="hidden" name="next" value="{{ next }}">
+<div class="row center">
+    <div class="loginBox col-lg-6 col-md-7 col-sm-8 col-11 ">
+        <div class="loginTitle"><span>Log ind</span></div>
+        {% block content %}
+        {% endblock %}
+    </div>
+</div>

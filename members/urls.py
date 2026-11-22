@@ -1,13 +1,14 @@
+from django.contrib.auth import views as auth_views
 from django.urls import re_path
+from django.views.decorators.csrf import csrf_exempt
+from graphene_django.views import GraphQLView
+
 from members.views import (
     AccountCreate,
     Activities,
     ActivitySignup,
     AdminSignup,
     ConfirmFamily,
-    consent_page,
-    consent_popup,
-    consent_preview,
     DeclineInvitation,
     DepartmentSignup,
     EntryPage,
@@ -19,16 +20,20 @@ from members.views import (
     QuickpayCallback,
     SupportMembership,
     WaitingListSetSubscription,
+    consent_page,
+    consent_popup,
+    consent_preview,
     departmentView,
     paymentGatewayErrorView,
     userCreated,
     volunteerSignup,
 )
-from django.contrib.auth import views as auth_views
-from graphene_django.views import GraphQLView
-from django.views.decorators.csrf import csrf_exempt
+from members.views.SlackInviteApproval import slack_invite_approval
 
 urlpatterns = [
+    re_path(
+        r"^slack_invite_approval/$", slack_invite_approval, name="slack_invite_approval"
+    ),
     re_path(r"^$", EntryPage, name="entry_page"),
     re_path(r"^graphql", csrf_exempt(GraphQLView.as_view(graphiql=True))),
     re_path(r"^account/create/$", AccountCreate, name="account_create"),
@@ -116,7 +121,7 @@ urlpatterns = [
         name="membership_view_family",
     ),
     re_path(
-        r"^family/(?P<unique>[\w-]+)/invitation_decline/(?P<invitation_id>[\d]+)/$",
+        r"^family/(?P<decline_uuid>[\w-]+)/invitation_decline/(?P<invitation_id>[\d]+)/$",
         DeclineInvitation,
         name="invitation_decline",
     ),

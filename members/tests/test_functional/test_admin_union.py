@@ -1,5 +1,6 @@
 import os
 import socket
+
 from django.contrib.auth.models import User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import Client
@@ -7,8 +8,11 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
-from members.models import Union, Address, Person, Family
+
 from members.admin.union_admin import generate_union_csv
+from members.models import Address, Family, Person, Union
+from members.tests.factories.department_factory import DepartmentFactory
+from members.tests.test_functional.helpers import complete_admin_signup
 
 
 def get_select_element_by_onchange(browser, index):
@@ -35,12 +39,14 @@ class UnionAdminTest(StaticLiveServerTestCase):
             city="City 1",
             zipcode="1234",
             region="Region Hovedstaden",
+            municipality="København",
         )
         self.address2 = Address.objects.create(
             streetname="Street 2",
             city="City 2",
             zipcode="5678",
             region="Region Sjælland",
+            municipality="Sorø",
         )
         self.union1 = Union.objects.create(
             name="Union1",
@@ -57,6 +63,9 @@ class UnionAdminTest(StaticLiveServerTestCase):
             founded_at="2023-02-01",
             closed_at="2023-11-30",
         )
+        # An open department is required for the admin signup form. Reuse an
+        # existing union so the CSV export test still sees only union1/union2.
+        self.department = DepartmentFactory.create(closed_dtm=None, union=self.union1)
         self.family = Family.objects.create()
         self.user1 = User.objects.create_user(
             username="user1", password="password", email="user1@example.com"
@@ -181,6 +190,13 @@ class UnionAdminTest(StaticLiveServerTestCase):
         self.browser.find_element(By.XPATH, '//input[@type="submit"]').click()
         self.save_screenshot_and_html("login")
 
+        # The admin has no person yet, so the consent middleware redirects to
+        # the admin signup form, where an ordinary user must be created.
+        complete_admin_signup(self, self.browser, self.department)
+
+        # Now that the admin has a person, the admin interface can be loaded
+        self.browser.get(f"{self.live_server_url}/admin/")
+
         # Navigate to the Union admin page
         self.browser.find_element(By.LINK_TEXT, "Foreninger").click()
         self.save_screenshot_and_html("union_page")
@@ -241,17 +257,17 @@ class UnionAdminTest(StaticLiveServerTestCase):
         queryset = Union.objects.all()
         result_string = generate_union_csv(queryset)
         expected_csv_content = (
-            "Forening;Email;Oprettelsdato;Lukkedato;CVR;"
+            "Forening;Email;Oprettelsdato;Lukkedato;CVR;Kommune;"
             "formand-navn;formand-email;formand-tlf;"
             "næstformand-navn;næstformand-email;næstformand-tlf;"
             "kasserer-navn;kasserer-email;kasserer-tlf;"
             "sekretær-navn;sekretær-email;sekretær-tlf\n"
-            "Union1;union1@example.com;2023-01-01;2023-12-31;11223344;"
+            "Union1;union1@example.com;2023-01-01;2023-12-31;11223344;København;"
             "person1;person1@example.com;12345678;"
             "person2;person2@example.com;87654321;"
             "person3;person3@example.com;11223344;"
             "person4;person4@example.com;44332211\n"
-            "Union2;union2@example.com;2023-02-01;2023-11-30;;"
+            "Union2;union2@example.com;2023-02-01;2023-11-30;;Sorø;"
             ";;;;;;;;;;;\n"
         )
 

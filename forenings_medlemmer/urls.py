@@ -1,5 +1,5 @@
-from django.urls import include, re_path
 from django.contrib import admin
+from django.urls import include, re_path
 from django.views.generic.base import RedirectView
 from two_factor.urls import urlpatterns as tf_urls
 
@@ -12,6 +12,7 @@ urlpatterns = [
     re_path("", include(tf_urls)),
     re_path(r"^admin/", admin.site.urls),
     re_path(r"^", include("members.urls")),
+    re_path(r"^cookie-consent/", include("cookie_consent.urls")),
     re_path("^sentry-debug/", lambda request: 1 / 0),  # Test url, delete this
     re_path(r"^favicon\.ico$", favicon_view),
 ]

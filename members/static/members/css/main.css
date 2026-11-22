@@ -25,7 +25,7 @@ nav > a, #user-action-container > div, section, .info-box {
   border-radius: 0.25rem;
 }
 
-.button, .action-list a, .action-list li a, .button-success, .button-danger, .button-primary-color, .block-button, .button-accent, #user-action-container > div > div > a {
+.button, .action-list a, .button-outline, .action-list li a, .button-success, .button-danger, .button-primary-color, .block-button, .button-accent, #user-action-container > div > div > a {
   border-radius: 0.25rem;
   text-align: center;
   display: inline-block;
@@ -44,7 +44,7 @@ nav > a, #user-action-container > div, section, .info-box {
   margin: 10px;
   text-decoration: none;
 }
-.button:hover, .action-list a:hover, .button-success:hover, .button-danger:hover, .button-primary-color:hover, .block-button:hover, .button-accent:hover, #user-action-container > div > div > a:hover {
+.button:hover, .action-list a:hover, .button-outline:hover, .button-success:hover, .button-danger:hover, .button-primary-color:hover, .block-button:hover, .button-accent:hover, #user-action-container > div > div > a:hover {
   background-color: #ed9224;
   color: white;
 }
@@ -87,6 +87,21 @@ nav > a, #user-action-container > div, section, .info-box {
 .button-success:hover {
   background-color: #288745;
   border-color: #288745;
+}
+
+.activity-signup-status {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid #28a745;
+  border-radius: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  margin: 10px;
+  vertical-align: middle;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: inherit;
 }
 
 body {
@@ -149,6 +164,21 @@ a {
 
 h5.card-title {
   font-size: 1.75rem;
+}
+
+.cookie-group-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.button-outline {
+  background-color: transparent;
+  color: #6d6e71;
+  border: 1px solid #6d6e71;
+}
+.button-outline:hover {
+  background-color: #dedfe0;
+  color: #6d6e71;
 }
 
 #user-action-container {
